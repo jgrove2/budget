@@ -2,19 +2,21 @@
     import { signIn, signOut } from "@auth/sveltekit/client";
     import { page } from "$app/stores";
 	import { redirect } from "@sveltejs/kit";
-	import { goto } from "$app/navigation";
+	import { goto, replaceState } from "$app/navigation";
     
     $effect(() => {
-        if(!$page.data.session) {
-            goto('/login');
+        console.log($page.data.session)
+        if($page.data.session) {
+            goto('/');
         }
     })
 </script>
 
 <h1>Welcome to Budget</h1>
 
-{#if $page.data.session}
-    <h1>You are logged in</h1>
+{#if !$page.data.session}
+    <h1>You are not logged in</h1>
+    <button onclick={() => signIn('github')}>Sign in with Github</button>
 {/if}
 
 <style>
