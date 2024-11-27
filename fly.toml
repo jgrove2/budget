@@ -6,6 +6,7 @@
 app = 'budget-solitary-surf-9412'
 primary_region = 'bos'
 
+
 [build]
 
 [http_service]
@@ -20,3 +21,6 @@ primary_region = 'bos'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+[env]
+  PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_dXNlZnVsLW1vbmtmaXNoLTUwLmNsZXJrLmFjY291bnRzLmRldiQ'
