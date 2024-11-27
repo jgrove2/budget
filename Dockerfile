@@ -17,6 +17,7 @@ ENV NODE_ENV="production"
 FROM base as build
 ARG CLERK_SECRET_KEY
 ARG PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_dXNlZnVsLW1vbmtmaXNoLTUwLmNsZXJrLmFjY291bnRzLmRldiQ'
+ARG PUBLIC_REP_LICENSE
 
 
 # Install packages needed to build node modules

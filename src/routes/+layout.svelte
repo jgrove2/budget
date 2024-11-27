@@ -80,7 +80,7 @@
 	</SignedIn>
 	<section class="body_section">
 		<SignedIn let:user>
-			{@render children()}
+			{@render children( )}
 		</SignedIn>
 		<SignedOut>
 			{@render children()}
