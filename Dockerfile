@@ -15,6 +15,8 @@ ENV NODE_ENV="production"
 
 # Throw-away build stage to reduce size of final image
 FROM base as build
+RUN --mount=type=secret,id=CLERK_SECRET_KEY \
+    CLERK_SECRET_KEY="$(cat /run/secrets/CLERK_SECRET_KEY)"
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
