@@ -33,7 +33,11 @@
 		"vitest": "^2.0.4"
 	},
 	"dependencies": {
+		"@supabase/supabase-js": "^2.46.1",
 		"@sveltejs/adapter-node": "^5.2.9",
-		"clerk-sveltekit": "^0.4.2"
+		"clerk-sveltekit": "^0.4.2",
+		"drizzle-kit": "^0.28.1",
+		"drizzle-orm": "^0.36.4",
+		"replicache": "^15.0.1"
 	}
 }
