@@ -72,15 +72,19 @@
 			</div>
 			<SignedIn>
 				<div class="user_profile">
-					<UserButton afterSignOutUrl="/"/>
-					{user?.username}
+					{#if (!open && innerWidth <= 1200) || innerWidth <= 1000}
+						<UserButton afterSignOutUrl="/" />
+					{:else}
+						<UserButton afterSignOutUrl="/" />
+						{user?.username}
+					{/if}
 				</div>
 			</SignedIn>
 		</div>
 	</SignedIn>
 	<section class="body_section">
 		<SignedIn let:user>
-			{@render children( )}
+			{@render children()}
 		</SignedIn>
 		<SignedOut>
 			{@render children()}
