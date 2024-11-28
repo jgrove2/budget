@@ -131,6 +131,7 @@
 		align-items: center;
 	}
 	.menu {
+		background-color: var(---background);
 		width: 4rem;
 		position: -webkit-sticky;
 		top: 0;
@@ -151,7 +152,7 @@
 	}
 	.surrounding {
 		display: flex;
-		height: 100vh;
+		height: 100dvh;
 	}
 	.logo {
 		font-size: 3rem;
@@ -178,6 +179,7 @@
 			width: auto;
 			grid-template-columns: 15% 65% 20%;
 			grid-template-rows: auto;
+			padding: .5em;
 		}
 		.user_profile {
 			padding-top: 0;

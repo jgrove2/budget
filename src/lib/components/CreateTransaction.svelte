@@ -25,7 +25,7 @@
 </script>
 
 <SignedIn let:user>
-	<button class="create-transaction" onclick={() => dialog?.showModal()}>+</button>
+	<button class="create-transaction" onclick={() => dialog?.showModal()}><span>+</span></button>
 	<dialog id="create-transaction-dialog">
 		<h2 class="new-transaction-header">New Transaction</h2>
 		<form
@@ -57,15 +57,11 @@
 			</select>
 			<button type="submit">+ Add Transaction</button>
 		</form>
-		<button class="close-dialog" onclick={() => dialog?.close()}>×</button>
+		<button class="close-dialog" onclick={() => dialog?.close()}><span>×</span></button>
 	</dialog>
 </SignedIn>
 
 <style>
-	.transaction-label {
-		font-size: 1rem;
-		display: block;
-	}
 	.new-transaction-header {
 		font-size: 2rem;
 		text-align: center;
@@ -73,13 +69,17 @@
 	.close-dialog {
 		position: absolute;
 		top: 0.5rem;
-		right: 0.5rem;
+		right: 5px;
 		line-height: 0.5em;
 		font-weight: 200;
 		border: none;
 		background-color: rgba(0, 0, 0, 0);
 		font-size: 3em;
 		cursor: pointer;
+        text-decoration: none;
+        span {
+            color: var(---text);
+        }
 	}
 	.create-transaction {
 		position: absolute;
@@ -89,14 +89,24 @@
 		left: 0;
 		right: 0;
 		text-align: center;
-		width: 50px;
-		height: 50px;
-		border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: fit-content;
+        height: 2rem;
+        width: 2rem;
+        padding: 2rem;
+		border-radius: 4rem;
 		background-color: var(---text);
 		color: var(---background);
 		font-size: 2em;
 		border: none;
 		cursor: pointer;
+        span {
+            width: fit-content;
+            height: fit-content;
+            line-height: 1rem;
+        }
 	}
 	dialog {
 		float: left;
