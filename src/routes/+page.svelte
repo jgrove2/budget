@@ -2,7 +2,6 @@
 	import { goto } from "$app/navigation";
 	import SignedIn from "clerk-sveltekit/client/SignedIn.svelte";
 	import SignedOut from "clerk-sveltekit/client/SignedOut.svelte";
-    console.log('Hello from budget/src/routes/%2Bpage.svelte');
 </script>
 
 <h1>Welcome to Budget</h1>

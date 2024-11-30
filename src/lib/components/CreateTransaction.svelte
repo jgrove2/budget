@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
 
-	let { categories, createTransaction } = $props();
-	let transaction_form = { category: undefined, amount: undefined };
+	let { categories, createTransaction, accounts } = $props();
+	let transaction_form = { category: undefined, amount: 0, transactionDate: undefined, account: undefined };
 	let dialog: HTMLDialogElement | null;
 
 	onMount(() => {
@@ -17,6 +17,8 @@
 			userId: userId || '',
 			amount: transaction_form.amount,
 			category: transaction_form.category,
+			account: transaction_form.account,
+			transactionDate: transaction_form.transactionDate,
 			deleted: false,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString()
@@ -43,7 +45,23 @@
 				required
 			/>
 			<label for="transaction-date">Date</label>
-			<input type="date" id="transaction-date" name="transaction-date" required />
+			<input
+				type="date"
+				id="transaction-date"
+				name="transaction-date"
+				required
+				bind:value={transaction_form.transactionDate}
+			/>
+			<label for="transaction-account">Account</label>
+			<select
+				id="transaction-account"
+				name="transaction-account"
+				bind:value={transaction_form.account}
+				required> 
+				{#each accounts as account}
+					<option value={account.id}>{account.name}</option>
+				{/each}
+			</select>
 			<label for="transaction-category">Category</label>
 			<select
 				id="transaction-category"
@@ -55,7 +73,7 @@
 					<option value={category.id}>{category.name}</option>
 				{/each}
 			</select>
-			<button type="submit">+ Add Transaction</button>
+			<button class="submit" type="submit">+ Add Transaction</button>
 		</form>
 		<button class="close-dialog" onclick={() => dialog?.close()}><span>×</span></button>
 	</dialog>
@@ -68,18 +86,24 @@
 	}
 	.close-dialog {
 		position: absolute;
-		top: 0.5rem;
-		right: 5px;
-		line-height: 0.5em;
-		font-weight: 200;
-		border: none;
-		background-color: rgba(0, 0, 0, 0);
-		font-size: 3em;
+		top: 1rem;
+		right: 1rem;
+		color: var(---text);
+		font-size: 2rem;
+		width: 1rem;
 		cursor: pointer;
-        text-decoration: none;
-        span {
-            color: var(---text);
-        }
+		line-height: 1rem;
+		display: flex;
+		border: none;
+		background-color: rgba(0,0,0,0);
+		cursor: pointer;
+		justify-content: center;
+		align-items: center;
+		padding: 0;
+		span {
+			text-align: center;
+			width: fit-content;
+		}
 	}
 	.create-transaction {
 		position: absolute;
@@ -89,24 +113,24 @@
 		left: 0;
 		right: 0;
 		text-align: center;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: fit-content;
-        height: 2rem;
-        width: 2rem;
-        padding: 2rem;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: fit-content;
+		height: 2rem;
+		width: 2rem;
+		padding: 2rem;
 		border-radius: 4rem;
 		background-color: var(---text);
 		color: var(---background);
 		font-size: 2em;
 		border: none;
 		cursor: pointer;
-        span {
-            width: fit-content;
-            height: fit-content;
-            line-height: 1rem;
-        }
+		span {
+			width: fit-content;
+			height: fit-content;
+			line-height: 1rem;
+		}
 	}
 	dialog {
 		float: left;
@@ -126,11 +150,11 @@
 		label {
 			display: block;
 			font-size: 1rem;
-            margin-bottom: 0.25rem;
+			margin-bottom: 0.25rem;
 		}
 		input,
 		select {
-            margin-bottom: 0.5rem;
+			margin-bottom: 0.5rem;
 			width: 20rem;
 			display: block;
 			height: 2rem;
@@ -143,7 +167,7 @@
 		input[type='number'] {
 			appearance: textfield;
 		}
-		button {
+		.submit {
 			display: block;
 			width: 20rem;
 			height: 2.5rem;
@@ -167,6 +191,26 @@
 			background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7));
 			animation: fade-in 1s;
 		}
+		.close-dialog {
+			position: absolute;
+			top: 1rem;
+			right: 1rem;
+			color: var(---text);
+			font-size: 3rem;
+			width: fit-content;
+			background-color: rgba(0,0,0,0);
+			border: none;
+			line-height: 1.5rem;
+			display: flex;
+			cursor: pointer;
+			justify-content: center;
+			align-items: center;
+			padding: 0;
+			span {
+				text-align: center;
+				width: fit-content;
+			}
+		}
 		dialog form {
 			margin-left: auto;
 			margin-right: auto;
@@ -181,7 +225,7 @@
 				display: block;
 				height: 2.5rem;
 				font-size: 1rem;
-                background-color: white;
+				background-color: white;
 				-ms-box-sizing: content-box;
 				-moz-box-sizing: content-box;
 				-webkit-box-sizing: content-box;
