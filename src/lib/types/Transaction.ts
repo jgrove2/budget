@@ -3,7 +3,7 @@ export type Transaction = {
 		userId: string;
 		amount: number;
 		category: number;
-		account: number;
+		payee: number;
 		deleted: boolean;
 		createdAt: string;
 		updatedAt: string;

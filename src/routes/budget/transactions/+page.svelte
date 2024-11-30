@@ -2,28 +2,30 @@
 	import { dev } from "$app/environment";
 	import { PUBLIC_REP_LICENSE } from "$env/static/public";
 	import type { FormattedCategoryGroup } from "$lib/clientHelpers/groupData";
-	import type { Account } from "$lib/types/Account";
+	import type { Payee } from "$lib/types/Payee";
 	import type { Categories, CategoriesGroups } from "$lib/types/Category";
 	import type { Transaction } from "$lib/types/Transaction";
 	import SignedIn from "clerk-sveltekit/client/SignedIn.svelte";
 	import type { WriteTransaction } from "replicache";
     import {Replicache} from "replicache";
+	import type {Replicache as ReplicacheType} from "replicache";
 	import { onMount } from "svelte";
 
 	let transactions: Transaction[] = $state([]);
-	let accounts: Account[] = $state([]);
-    let selectedAccount: number = $state(0);
-    let createAccountForm = $state({name: undefined});
+	let payees: Payee[] = $state([]);
+    let selectedPayee: number = $state(-1);
+    let createPayeeForm = $state({name: undefined});
 
 	let transaction_db_name = dev ? `dev:transactions` : `transactions`;
-	let account_db_name = dev ? `dev:accounts` : `accounts`;
+	let payee_db_name = dev ? `dev:payees` : `payees`;
 
-	let replicacheTransactionInstance: Replicache<any>;
-	let replicacheAccountInstance: Replicache<any>;
+	let replicacheTransactionInstance: ReplicacheType<any>;
+	let replicachePayeeInstance: ReplicacheType<any>;
 	onMount(() => {
 		replicacheTransactionInstance = initReplicache(transaction_db_name);
-		replicacheAccountInstance = initReplicache(account_db_name);
+		replicachePayeeInstance = initReplicache(payee_db_name);
 	});
+	$inspect(selectedPayee)
 
 	function initReplicache(name: string) {
 		const licenseKey = PUBLIC_REP_LICENSE;
@@ -42,57 +44,23 @@
 					}
 				}
 			});
-		} else if (name.includes('category_group')) {
+		}
+		 else{
 			return new Replicache({
 				name,
 				licenseKey,
 				mutators: {
-					create_category_group: async (tx: WriteTransaction, args: Categories) => {
-						const key = `category_groups/${args.id}`;
+					create_payee: async (tx: WriteTransaction, args: Payee) => {
+						const key = `payees/${args.id}`;
 						await tx.set(key, args);
 					},
-					delete_category_group: async (tx: WriteTransaction, args: Categories) => {
-						const key = `category_groups/${args.id}`;
-						await tx.set(key, args);
-					},
-					update_category_group: async (tx: WriteTransaction, args: CategoriesGroups) => {
-						const key = `category_groups/${args.id}`;
-						await tx.set(key, args);
-					}
-				}
-			});
-		} else if(name.includes("account")) {
-			return new Replicache({
-				name,
-				licenseKey,
-				mutators: {
-					create_account: async (tx: WriteTransaction, args: Account) => {
-						const key = `accounts/${args.id}`;
-						await tx.set(key, args);
-					},
-					delete_account: async (tx: WriteTransaction, args: Account) => {
-						const key = `accounts/${args.id}`;
+					delete_payee: async (tx: WriteTransaction, args: Payee) => {
+						const key = `payees/${args.id}`;
 						await tx.set(key, args);
 					}
 				}
 			});
 		} 
-		else {
-			return new Replicache({
-				name,
-				licenseKey,
-				mutators: {
-					create_category: async (tx: WriteTransaction, args: Categories) => {
-						const key = `categories/${args.id}`;
-						await tx.set(key, args);
-					},
-					delete_category: async (tx: WriteTransaction, args: Categories) => {
-						const key = `categories/${args.id}`;
-						await tx.set(key, args);
-					}
-				}
-			});
-		}
 	}
 
 	$effect(() => {
@@ -109,57 +77,81 @@
 		);
 	});
 	$effect(() => {
-		return replicacheAccountInstance.subscribe(
+		return replicachePayeeInstance.subscribe(
 			async (tx) => {
-				const accountItems = await tx.scan({ prefix: 'accounts/' }).entries().toArray();
-				return accountItems
-					.map(([_, value]) => value as Account)
-					.filter((account) => !account.deleted);
+				const payeeItems = await tx.scan({ prefix: 'payees/' }).entries().toArray();
+				return payeeItems
+					.map(([_, value]) => value as Payee)
+					.filter((payee) => !payee.deleted);
 			},
-			(items: Account[]) => {
-				accounts = items;
+			(items: Payee[]) => {
+				payees = items;
 			}
 		);
 	});
-    function onSubmitAccount(e: SubmitEvent, userId: string | undefined) {
+    function onSubmitPayee(e: SubmitEvent, userId: string | undefined) {
         e.preventDefault();
-        replicacheAccountInstance.mutate.create_account({
+        replicachePayeeInstance.mutate.create_payee({
             id: new Date().getTime(),
             userId: userId || '',
-            name: createAccountForm.name,
+            name: createPayeeForm.name,
             deleted: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         });
-        createAccountForm.name = undefined;
+        createPayeeForm.name = undefined;
     }
 </script>
 <SignedIn let:user>
-    <h1>accounts</h1>
-    <form onsubmit={(e) => onSubmitAccount(e, user?.id)}>
-        <label for="account-name">Account Name</label>
-        <input type="text" id="account-name" name="account-name" required bind:value={createAccountForm.name}/>
+    <h1>Transactions</h1>
+    <form onsubmit={(e) => onSubmitPayee(e, user?.id)}>
+        <label for="payee-name">Payee Name</label>
+        <input type="text" id="payee-name" name="payee-name" required bind:value={createPayeeForm.name}/>
         <button type="submit">Create Account</button>
     </form>
-    <select bind:value={selectedAccount}>
-        {#each accounts as account}
-        <option value={account.id}>{account.name}</option>
+    <select bind:value={selectedPayee}>
+		<option value={-1}>All</option>
+        {#each payees as payee}
+        <option value={payee.id}>{payee.name}</option>
         {/each}
     </select>
-    {#each accounts as account}
-        {#if account.id === selectedAccount}
-            <h2>{account.name}</h2>
+	{#if selectedPayee === -1}
+		<h2>All Transactions</h2>
             <table border=1>
                 <thead>
                     <tr>
+						<th>Payee</th>
                         <th>Transaction Date</th>
                         <th>Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     {#each transactions as transaction}
-                    {#if transaction.account === account.id}
                     <tr>
+						<td>{payees.find((payee) => payee.id === transaction.payee)?.name || "Unknown"}</td>
+                        <td>{transaction.transactionDate}</td>
+                        <td>{transaction.amount}</td>
+                    </tr>
+                    {/each}
+                </tbody>
+            </table>
+	{/if}
+    {#each payees as payee}
+		{#if payee.id === selectedPayee}
+            <h2>{payee.name}</h2>
+            <table border=1>
+                <thead>
+                    <tr>
+						<th>Payee</th>
+                        <th>Transaction Date</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each transactions as transaction}
+                    {#if transaction.payee === payee.id}
+                    <tr>
+						<td>{payee.name}</td>
                         <td>{transaction.transactionDate}</td>
                         <td>{transaction.amount}</td>
                     </tr>

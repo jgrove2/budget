@@ -1,4 +1,4 @@
-export type Account = {
+export type Payee = {
 		id: number;
 		userId: string;
 		name: string;
