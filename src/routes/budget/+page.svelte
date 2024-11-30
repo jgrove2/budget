@@ -4,7 +4,7 @@
 	import { createCategoryObject, type FormattedCategoryGroup } from '$lib/clientHelpers/groupData';
 	import CategoryTable from '$lib/components/CategoryTable.svelte';
 	import CreateTransaction from '$lib/components/CreateTransaction.svelte';
-	import type { Account } from '$lib/types/Account';
+	import type { Payee } from '$lib/types/Payee';
 	import type { Categories, CategoriesGroups } from '$lib/types/Category';
 	import type { Transaction } from '$lib/types/Transaction';
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
@@ -15,7 +15,7 @@
 	let categoryGroup: CategoriesGroups[] = $state([]);
 	let transactions: Transaction[] = $state([]);
 	let categories: Categories[] = $state([]);
-	let accounts: Account[] = $state([]);
+	let payees: Payee[] = $state([]);
 	let formattedCategories: FormattedCategoryGroup[] = $derived(createCategoryObject(categories, categoryGroup, transactions));
 	let category_group_form = $state({ name: undefined });
 	let category_form = $state({ name: undefined, category_group: undefined });
@@ -23,17 +23,17 @@
 	let transaction_db_name = dev ? `dev:transactions` : `transactions`;
 	let category_group_db_name = dev ? `dev:category_group` : `category_group`;
 	let category_db_name = dev ? `dev:categories` : `categories`;
-	let account_db_name = dev ? `dev:accounts` : `accounts`;
+	let payee_db_name = dev ? `dev:payees` : `payees`;
 
 	let replicacheTransactionInstance: Replicache<any>;
 	let replicacheCategoryInstance: Replicache<any>;
 	let replicacheCategoryGroupInstance: Replicache<any>;
-	let replicacheAccountInstance: Replicache<any>;
+	let replicachePayeeInstance: Replicache<any>;
 	onMount(() => {
 		replicacheTransactionInstance = initReplicache(transaction_db_name);
 		replicacheCategoryInstance = initReplicache(category_db_name);
 		replicacheCategoryGroupInstance = initReplicache(category_group_db_name);
-		replicacheAccountInstance = initReplicache(account_db_name);
+		replicachePayeeInstance = initReplicache(payee_db_name);
 	});
 
 	function initReplicache(name: string) {
@@ -72,17 +72,17 @@
 					}
 				}
 			});
-		} else if(name.includes("account")) {
+		} else if(name.includes("payee")) {
 			return new Replicache({
 				name,
 				licenseKey,
 				mutators: {
-					create_account: async (tx: WriteTransaction, args: Account) => {
-						const key = `accounts/${args.id}`;
+					create_payee: async (tx: WriteTransaction, args: Payee) => {
+						const key = `payees/${args.id}`;
 						await tx.set(key, args);
 					},
-					delete_account: async (tx: WriteTransaction, args: Account) => {
-						const key = `accounts/${args.id}`;
+					delete_payee: async (tx: WriteTransaction, args: Payee) => {
+						const key = `payees/${args.id}`;
 						await tx.set(key, args);
 					}
 				}
@@ -181,22 +181,22 @@
 		);
 	});
 	$effect(() => {
-		return replicacheAccountInstance.subscribe(
+		return replicachePayeeInstance.subscribe(
 			async (tx) => {
-				const accountItems = await tx.scan({ prefix: 'accounts/' }).entries().toArray();
-				return accountItems
-					.map(([_, value]) => value as Account)
-					.filter((account) => !account.deleted);
+				const payeeItems = await tx.scan({ prefix: 'payees/' }).entries().toArray();
+				return payeeItems
+					.map(([_, value]) => value as Payee)
+					.filter((payee) => !payee.deleted);
 			},
-			(items: Account[]) => {
-				accounts = items;
+			(items: Payee[]) => {
+				payees = items;
 			}
 		);
 	});
 </script>
 
 <SignedIn let:user>
-	<CreateTransaction categories={categories} createTransaction={replicacheTransactionInstance.mutate.create_transaction} {accounts}/>
+	<CreateTransaction categories={categories} createTransaction={replicacheTransactionInstance.mutate.create_transaction} {payees}/>
 	<h1>home</h1>
 	<h2>Category Group</h2>
 	<form method="POST" onsubmit={(e) => onSubmitCategoryGroup(e, user?.id)}>

@@ -2,22 +2,30 @@
 	import { onMount } from 'svelte';
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
 
-	let { categories, createTransaction, accounts } = $props();
-	let transaction_form = { category: undefined, amount: 0, transactionDate: undefined, account: undefined };
+	let { categories, createTransaction, payees } = $props();
+	let transaction_form = $state({
+		transactionType: 1,
+		category: undefined,
+		amount: 0,
+		transactionDate: undefined,
+		payee: undefined
+	});
 	let dialog: HTMLDialogElement | null;
-
+	let selected_positive = $derived(transaction_form.transactionType === 1);
+	let selected_negative = $derived(transaction_form.transactionType === -1);
 	onMount(() => {
 		dialog = document.getElementById('create-transaction-dialog') as HTMLDialogElement;
 	});
+	$inspect(transaction_form);
 
 	function onSubmit(e: SubmitEvent, userId: string | undefined) {
 		e.preventDefault();
 		createTransaction({
 			id: new Date().getTime(),
 			userId: userId || '',
-			amount: transaction_form.amount,
+			amount: transaction_form.amount * transaction_form.transactionType,
 			category: transaction_form.category,
-			account: transaction_form.account,
+			payee: transaction_form.payee,
 			transactionDate: transaction_form.transactionDate,
 			deleted: false,
 			createdAt: new Date().toISOString(),
@@ -37,13 +45,37 @@
 			}}
 		>
 			<label for="transaction-amount">Amount</label>
-			<input
+			<div class="transaction-amount-input">
+				<ul>
+					<li class="radio-li" class:selected_positive>
+						<input
+						type="radio"
+						id="transaction-type-income"
+						name="transaction-type"
+						value={1}
+						bind:group={transaction_form.transactionType}
+						/>
+						<label for="transaction-type-income">+</label>
+					</li>
+					<li class:selected_negative>
+					<input
+						type="radio"
+						id="transaction-type-expense"
+						name="transaction-type"
+						value={-1}
+						bind:group={transaction_form.transactionType}
+						/>
+						<label for="transaction-type-expense">-</label>
+					</li>
+				</ul>
+				<input
 				type="number"
 				id="transaction-amount"
 				step=".01"
 				bind:value={transaction_form.amount}
 				required
-			/>
+				/>
+			</div>
 			<label for="transaction-date">Date</label>
 			<input
 				type="date"
@@ -52,14 +84,15 @@
 				required
 				bind:value={transaction_form.transactionDate}
 			/>
-			<label for="transaction-account">Account</label>
+			<label for="transaction-payee">Payee</label>
 			<select
-				id="transaction-account"
-				name="transaction-account"
-				bind:value={transaction_form.account}
-				required> 
-				{#each accounts as account}
-					<option value={account.id}>{account.name}</option>
+				id="transaction-payee"
+				name="transaction-payee"
+				bind:value={transaction_form.payee}
+				required
+			>
+				{#each payees as payee}
+					<option value={payee.id}>{payee.name}</option>
 				{/each}
 			</select>
 			<label for="transaction-category">Category</label>
@@ -80,6 +113,44 @@
 </SignedIn>
 
 <style>
+	.transaction-amount-input {
+		display: flex;
+		/* gap: 0.5rem; */
+		input[type=number] {
+			width: 66% !important;
+		}
+	}
+	ul {
+		width: 33%;
+		margin: 0;
+		padding:0;
+	}
+	li {
+		color: var(---text);
+		background-color: var(---background);
+		list-style-type: none;
+		float: left;
+		width: 3rem;
+		border: 2px solid var(---text);
+		cursor: pointer;
+		label {
+			cursor: pointer;
+			font-weight: bolder;
+			font-size: 1rem !important;
+			text-align: center;
+		}
+	}
+	li.selected_positive {
+		background-color: var(---text);
+		color: var(---background);
+	}
+	li.selected_negative {
+		background-color: var(---text);
+		color: var(---background);
+	}
+	input[type='radio'] {
+		display: none;
+	}
 	.new-transaction-header {
 		font-size: 2rem;
 		text-align: center;
@@ -95,7 +166,7 @@
 		line-height: 1rem;
 		display: flex;
 		border: none;
-		background-color: rgba(0,0,0,0);
+		background-color: rgba(0, 0, 0, 0);
 		cursor: pointer;
 		justify-content: center;
 		align-items: center;
@@ -152,7 +223,8 @@
 			font-size: 1rem;
 			margin-bottom: 0.25rem;
 		}
-		input,
+		input[type='number'],
+		input[type='date'],
 		select {
 			margin-bottom: 0.5rem;
 			width: 20rem;
@@ -163,6 +235,7 @@
 			-moz-box-sizing: content-box;
 			-webkit-box-sizing: content-box;
 			box-sizing: border-box;
+			background-color: white;
 		}
 		input[type='number'] {
 			appearance: textfield;
@@ -180,6 +253,44 @@
 		}
 	}
 	@media (min-width: 1000px) {
+	.transaction-amount-input {
+		display: flex;
+		/* gap: 0.5rem; */
+		input[type=number] {
+			width: 70% !important;
+		}
+	}
+		ul {
+			width: 33%;
+		}
+		li {
+			color: var(---text);
+			background-color: var(---background);
+			list-style-type: none;
+			float: left;
+			width: 3rem;
+			border: 2px solid var(---text);
+			cursor: pointer;
+			label {
+				cursor: pointer;
+				font-weight: bolder;
+				font-size: 1.5rem !important;
+				text-align: center;
+				margin-bottom: 2px !important;
+			}
+		}
+		li.selected_positive {
+			background-color: var(---text);
+			color: var(---background);
+		}
+		li.selected_negative {
+			background-color: var(---text);
+			color: var(---background);
+		}
+		input[type='radio'] {
+			display: none;
+			cursor: pointer;
+		}
 		dialog {
 			float: left;
 			background-color: var(---background);
@@ -198,7 +309,7 @@
 			color: var(---text);
 			font-size: 3rem;
 			width: fit-content;
-			background-color: rgba(0,0,0,0);
+			background-color: rgba(0, 0, 0, 0);
 			border: none;
 			line-height: 1.5rem;
 			display: flex;
@@ -219,7 +330,8 @@
 				display: block;
 				font-size: 1rem;
 			}
-			input,
+			input[type='date'],
+			input[type='number'],
 			select {
 				width: 22rem;
 				display: block;

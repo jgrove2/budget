@@ -57,10 +57,10 @@
 			</div>
 			<div class="links">
 				{#if (!open && innerWidth <= 1200) || innerWidth <= 1000}
-					<div class="center nav_link"><a href="/budget/accounts"><Folderopen /></a></div>
+					<div class="center nav_link"><a href="/budget/transactions"><Folderopen /></a></div>
 				{:else}
 					<div class="center nav_link">
-						<a href="/budget/accounts"><Folderopen /><span>Accounts</span></a>
+						<a href="/budget/transactions"><Folderopen /><span>Transactions</span></a>
 					</div>
 				{/if}
 				<br />
