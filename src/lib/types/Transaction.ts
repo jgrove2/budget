@@ -3,9 +3,11 @@ export type Transaction = {
 		userId: string;
 		amount: number;
 		category: number;
+		account: number;
 		deleted: boolean;
 		createdAt: string;
 		updatedAt: string;
+		transactionDate: string;
 		completed: boolean;
 	};
 

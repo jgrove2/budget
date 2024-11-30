@@ -1,58 +1,39 @@
 <script lang="ts">
 	import { dev } from '$app/environment';
 	import { PUBLIC_REP_LICENSE } from '$env/static/public';
+	import { createCategoryObject, type FormattedCategoryGroup } from '$lib/clientHelpers/groupData';
+	import CategoryTable from '$lib/components/CategoryTable.svelte';
 	import CreateTransaction from '$lib/components/CreateTransaction.svelte';
+	import type { Account } from '$lib/types/Account';
+	import type { Categories, CategoriesGroups } from '$lib/types/Category';
+	import type { Transaction } from '$lib/types/Transaction';
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
 	import { Replicache, type WriteTransaction } from 'replicache';
 	import { onMount } from 'svelte';
 
-	type CategoriesGroups = {
-		id: number;
-		userId: string;
-		name: string;
-		isSubCategory: boolean;
-		subCategories: number[];
-		deleted: boolean;
-		createdAt: string;
-		updatedAt: string;
-	};
-
-	type Categories = {
-		id: number;
-		userId: string;
-		name: string;
-		deleted: boolean;
-		createdAt: string;
-		updatedAt: string;
-	};
-	type Transaction = {
-		id: number;
-		userId: string;
-		amount: number;
-		category: number;
-		deleted: boolean;
-		createdAt: string;
-		updatedAt: string;
-		completed: boolean;
-	};
 
 	let categoryGroup: CategoriesGroups[] = $state([]);
 	let transactions: Transaction[] = $state([]);
 	let categories: Categories[] = $state([]);
+	let accounts: Account[] = $state([]);
+	let formattedCategories: FormattedCategoryGroup[] = $derived(createCategoryObject(categories, categoryGroup, transactions));
 	let category_group_form = $state({ name: undefined });
 	let category_form = $state({ name: undefined, category_group: undefined });
 
 	let transaction_db_name = dev ? `dev:transactions` : `transactions`;
 	let category_group_db_name = dev ? `dev:category_group` : `category_group`;
 	let category_db_name = dev ? `dev:categories` : `categories`;
+	let account_db_name = dev ? `dev:accounts` : `accounts`;
 
 	let replicacheTransactionInstance: Replicache<any>;
 	let replicacheCategoryInstance: Replicache<any>;
 	let replicacheCategoryGroupInstance: Replicache<any>;
+	let replicacheAccountInstance: Replicache<any>;
 	onMount(() => {
 		replicacheTransactionInstance = initReplicache(transaction_db_name);
 		replicacheCategoryInstance = initReplicache(category_db_name);
 		replicacheCategoryGroupInstance = initReplicache(category_group_db_name);
+		replicacheAccountInstance = initReplicache(account_db_name);
 	});
 
 	function initReplicache(name: string) {
@@ -91,7 +72,23 @@
 					}
 				}
 			});
-		} else {
+		} else if(name.includes("account")) {
+			return new Replicache({
+				name,
+				licenseKey,
+				mutators: {
+					create_account: async (tx: WriteTransaction, args: Account) => {
+						const key = `accounts/${args.id}`;
+						await tx.set(key, args);
+					},
+					delete_account: async (tx: WriteTransaction, args: Account) => {
+						const key = `accounts/${args.id}`;
+						await tx.set(key, args);
+					}
+				}
+			});
+		} 
+		else {
 			return new Replicache({
 				name,
 				licenseKey,
@@ -123,15 +120,15 @@
 		});
 		category_group_form.name = undefined;
 	}
-	function onSubmitCategory(e: SubmitEvent, userId: string | undefined) {
-		e.preventDefault();
+
+	function createNewCategory(name: string, groupId: number, userId: string | undefined) {
 		let categoryId = new Date().getTime();
-		let updatedCategorySelected = categoryGroup.find((group) => group.id === category_form.category_group);
+		let updatedCategorySelected = categoryGroup.find((group) => group.id === groupId);
 		if(updatedCategorySelected) {
 			replicacheCategoryInstance.mutate.create_category({
 				id: categoryId,
 				userId: userId,
-				name: category_form.name,
+				name: name,
 				deleted: false,
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
@@ -141,8 +138,6 @@
 				...updatedCategorySelected,
 				subCategories: [...updatedCategorySelected.subCategories, categoryId]
 			})
-			category_form.name = undefined;
-			category_form.category_group = undefined;
 		}
 	}
 
@@ -155,7 +150,6 @@
 					.filter((transactions) => !transactions.deleted);
 			},
 			(items: Transaction[]) => {
-				console.log(items);
 				transactions = items;
 			}
 		);
@@ -186,11 +180,23 @@
 			}
 		);
 	});
-
+	$effect(() => {
+		return replicacheAccountInstance.subscribe(
+			async (tx) => {
+				const accountItems = await tx.scan({ prefix: 'accounts/' }).entries().toArray();
+				return accountItems
+					.map(([_, value]) => value as Account)
+					.filter((account) => !account.deleted);
+			},
+			(items: Account[]) => {
+				accounts = items;
+			}
+		);
+	});
 </script>
 
 <SignedIn let:user>
-	<CreateTransaction categories={categories} createTransaction={replicacheTransactionInstance.mutate.create_transaction}/>
+	<CreateTransaction categories={categories} createTransaction={replicacheTransactionInstance.mutate.create_transaction} {accounts}/>
 	<h1>home</h1>
 	<h2>Category Group</h2>
 	<form method="POST" onsubmit={(e) => onSubmitCategoryGroup(e, user?.id)}>
@@ -198,49 +204,7 @@
 		<input type="text" id="name" bind:value={category_group_form.name} />
         <button type="submit">Add Category Group</button>
 	</form>
-	<h2>Category</h2>
-	<form method="POST" onsubmit={(e) => onSubmitCategory(e, user?.id)}>
-		<label for="name">Name:</label>
-		<input type="text" id="name" bind:value={category_form.name} />
-		<label for="category_group">Category Group:</label>
-		<select id="category_group" bind:value={category_form.category_group}>
-			{#each categoryGroup as category}
-				{#if category.userId === user?.id}
-					<option value={category.id}>{category.name}</option>
-				{/if}
-			{/each}
-		</select>
-        <button type="submit">Add Category</button>
-	</form>
-	<ul>
-		{#each transactions as transaction}
-			{#if transaction.userId === user?.id}
-				<li class:completed={transaction.completed}>
-					<span>{transaction.amount}</span>
-				</li>
-			{/if}
-		{/each}
-	</ul>
 	<section>
-		<h1>Categories</h1>
-		{#each categoryGroup as category}
-			<h2>{category.name}</h2>
-			<ul>
-				{#each category.subCategories as subCategory}
-					<li>{categories.find((category) => category.id === subCategory)?.name}</li>
-					<ul>
-						{#each transactions as transaction}
-							<li>{transaction.amount}</li>
-						{/each}
-					</ul>
-				{/each}
-			</ul>
-		{/each}
+		<CategoryTable categories={formattedCategories} {createNewCategory}/>
 	</section>
 </SignedIn>
-
-<style>
-	.completed {
-		text-decoration: line-through;
-	}
-</style>
