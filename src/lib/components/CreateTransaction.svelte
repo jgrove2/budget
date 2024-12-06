@@ -17,6 +17,8 @@
 		dialog = document.getElementById('create-transaction-dialog') as HTMLDialogElement;
 	});
 
+	let categoriesPlusDefaults = $derived([...categories, {id: -2, name: 'Income'}]);
+
 	function onSubmit(e: SubmitEvent, userId: string | undefined) {
 		e.preventDefault();
 		createTransaction({
@@ -101,7 +103,7 @@
 				bind:value={transaction_form.category}
 				required
 			>
-				{#each categories as category}
+				{#each categoriesPlusDefaults as category}
 					<option value={category.id}>{category.name}</option>
 				{/each}
 			</select>
