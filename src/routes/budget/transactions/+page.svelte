@@ -25,7 +25,6 @@
 		replicacheTransactionInstance = initReplicache(transaction_db_name);
 		replicachePayeeInstance = initReplicache(payee_db_name);
 	});
-	$inspect(selectedPayee)
 
 	function initReplicache(name: string) {
 		const licenseKey = PUBLIC_REP_LICENSE;

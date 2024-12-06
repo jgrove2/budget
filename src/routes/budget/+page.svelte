@@ -10,15 +10,17 @@
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
 	import { Replicache, type WriteTransaction } from 'replicache';
 	import { onMount } from 'svelte';
+	import { CalendarDate } from 'calendar-date';
+	import { formatMoney } from '$lib/clientHelpers/formatMoney';
 
 
 	let categoryGroup: CategoriesGroups[] = $state([]);
 	let transactions: Transaction[] = $state([]);
 	let categories: Categories[] = $state([]);
 	let payees: Payee[] = $state([]);
-	let formattedCategories: FormattedCategoryGroup[] = $derived(createCategoryObject(categories, categoryGroup, transactions));
 	let category_group_form = $state({ name: undefined });
-	let category_form = $state({ name: undefined, category_group: undefined });
+	let currentMonth = $state(CalendarDate.nowLocal());
+	let formattedCategories: FormattedCategoryGroup[] = $derived(createCategoryObject(currentMonth, categories, categoryGroup, transactions  ));
 
 	let transaction_db_name = dev ? `dev:transactions` : `transactions`;
 	let category_group_db_name = dev ? `dev:category_group` : `category_group`;
@@ -100,6 +102,10 @@
 					delete_category: async (tx: WriteTransaction, args: Categories) => {
 						const key = `categories/${args.id}`;
 						await tx.set(key, args);
+					},
+					update_category: async (tx: WriteTransaction, args: CategoriesGroups) => {
+						const key = `categories/${args.id}`;
+						await tx.set(key, args);
 					}
 				}
 			});
@@ -121,7 +127,7 @@
 		category_group_form.name = undefined;
 	}
 
-	function createNewCategory(name: string, groupId: number, userId: string | undefined) {
+	function createNewCategory(name: string, groupId: number, currentMonth: CalendarDate, userId: string | undefined) {
 		let categoryId = new Date().getTime();
 		let updatedCategorySelected = categoryGroup.find((group) => group.id === groupId);
 		if(updatedCategorySelected) {
@@ -132,7 +138,8 @@
 				deleted: false,
 				createdAt: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
-				completed: false
+				completed: false,
+				budgets: {0: 0}
 			});
 			replicacheCategoryGroupInstance.mutate.update_category_group({
 				...updatedCategorySelected,
@@ -193,9 +200,26 @@
 			}
 		);
 	});
+
+	let totalBalance = $derived(() => {
+		let total = 0;
+		transactions?.forEach((transaction: Transaction) => {
+			let creationDate = CalendarDate.fromDateUTC(new Date(transaction.createdAt));
+			if(creationDate.isBeforeOrEqual(currentMonth.getLastDayOfMonth())) {
+				total += transaction.amount;
+			}
+		})
+		return total
+	})
+
 </script>
 
 <SignedIn let:user>
+	<h4>{formatMoney(totalBalance())}</h4>
+	<button onclick={() => currentMonth = currentMonth.addMonths(-1)}>{"<"}</button>
+    <span>{currentMonth.toFormat("MM-yyyy")}</span>
+    <button onclick={() => currentMonth = currentMonth.addMonths(1)}>{">"}</button>
+    
 	<CreateTransaction categories={categories} createTransaction={replicacheTransactionInstance.mutate.create_transaction} {payees}/>
 	<h1>home</h1>
 	<h2>Category Group</h2>
@@ -205,6 +229,6 @@
         <button type="submit">Add Category Group</button>
 	</form>
 	<section>
-		<CategoryTable categories={formattedCategories} {createNewCategory}/>
+		<CategoryTable {transactions} categories={formattedCategories} {createNewCategory} updateCategory={replicacheCategoryInstance.mutate.update_category} {currentMonth}/>
 	</section>
 </SignedIn>
