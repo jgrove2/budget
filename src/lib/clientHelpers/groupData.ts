@@ -1,5 +1,6 @@
 import type { Categories, CategoriesGroups } from "$lib/types/Category";
 import type { Transaction } from "$lib/types/Transaction";
+import type { CalendarDate } from "calendar-date";
 
 export type FormattedCategoryGroup = {
     id: number;
@@ -9,13 +10,16 @@ export type FormattedCategoryGroup = {
     showCategories: boolean;
     addNewCategory: boolean;
 }
-type FormattedCategory = {
+export type FormattedCategory = {
     id: number;
     name: string;
     spent: number;
+    createdAt: string;
+    budgets: any;
+    selfCategory: Categories;
 }
 
-export function createCategoryObject(categories: Categories[], categoryGroups: CategoriesGroups[], transactions: Transaction[]): FormattedCategoryGroup[] {
+export function createCategoryObject(currentMonth: CalendarDate, categories: Categories[], categoryGroups: CategoriesGroups[], transactions: Transaction[]): FormattedCategoryGroup[] {
     const formattedCategoryGroup: FormattedCategoryGroup[] | undefined = categoryGroups.map((group: CategoriesGroups) => {
         const subCategories = group.subCategories.map((subCategoryId: number) => {
             const category = categories.find((category: Categories) => category.id === subCategoryId);
@@ -29,7 +33,10 @@ export function createCategoryObject(categories: Categories[], categoryGroups: C
                         } else {
                             return acc;
                         }
-                    }, 0) || 0
+                    }, 0) || 0,
+                    createdAt: category.createdAt,
+                    budgets: category.budgets,
+                    selfCategory: category
                 }
             }
         }).filter((category: FormattedCategory | undefined) => category !== undefined);

@@ -14,6 +14,7 @@ export type Categories = {
     userId: string;
     name: string;
     deleted: boolean;
+    budgets: {number: number};
     createdAt: string;
     updatedAt: string;
 }

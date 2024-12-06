@@ -16,7 +16,6 @@
 	onMount(() => {
 		dialog = document.getElementById('create-transaction-dialog') as HTMLDialogElement;
 	});
-	$inspect(transaction_form);
 
 	function onSubmit(e: SubmitEvent, userId: string | undefined) {
 		e.preventDefault();
