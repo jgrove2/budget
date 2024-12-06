@@ -211,6 +211,18 @@
 		})
 		return total
 	})
+	let monthsIncome = $derived(() => {
+		let total = 0;
+		transactions?.forEach((transaction: Transaction) => {
+			let creationDate = CalendarDate.fromDateUTC(new Date(transaction.createdAt));
+			if(creationDate.isBeforeOrEqual(currentMonth.getLastDayOfMonth()) && creationDate.isAfterOrEqual(currentMonth.getFirstDayOfMonth())) {
+				if(transaction.category === -2) {
+					total += transaction.amount;
+				}
+			}
+		})
+		return total;
+	})
 
 </script>
 
@@ -231,4 +243,24 @@
 	<section>
 		<CategoryTable {transactions} categories={formattedCategories} {createNewCategory} updateCategory={replicacheCategoryInstance.mutate.update_category} {currentMonth}/>
 	</section>
+	<section>
+		<table>
+			<thead>
+				<tr>
+					<th>Category</th>
+					<th>Received</th>
+				</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>
+							Income
+						</td>
+						<td>
+							{formatMoney(monthsIncome())}
+						</td>
+					</tr>
+				</tbody>
+		</table>
+		</section>
 </SignedIn>

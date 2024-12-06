@@ -65,6 +65,7 @@
 			addNewCategory: false
 		}));
 	});
+    $inspect(categories);
 </script>
 
 <SignedIn let:user>
@@ -74,6 +75,8 @@
 				<th>Options</th>
 				<th>Category</th>
 				<th>Spent</th>
+                <th>Budgeted</th>
+                <th>Balance</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -85,10 +88,12 @@
 					</td>
 					<td>{category.name}</td>
 					<td>{formatMoney(category.spent)}</td>
+                    <td>{category.budget}</td>
+                    <td>0</td>
 				</tr>
 				{#if categoryGroups?.length > 0 && categoryGroups[catIndex]?.addNewCategory}
 					<tr>
-						<td colspan="3">
+						<td colspan="5">
 							<form
 								onsubmit={(e) => {
 									addNewCategory(e, category.id, user?.id);

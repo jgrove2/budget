@@ -15,7 +15,7 @@
      }
  })
  let currentBudget = $derived(() => {
-    return subCategory.budgets[currentOffset()] || 0;
+    return subCategory.selfCategory.budgets[currentOffset()] || 0;
  })
  let totalSpent = $derived(() => {
         let total = 0;
@@ -23,7 +23,7 @@
         console.log(subCategory.selfCategory.budgets)
         for(let i = 0; i < offsets.length; i++) {
             if(offsets[i] <= currentOffset()) {
-                total += subCategory.budgets[offsets[i]];
+                total += subCategory.selfCategory.budgets[offsets[i]];
             }
         }
         transactions?.forEach((transaction: Transaction) => {
