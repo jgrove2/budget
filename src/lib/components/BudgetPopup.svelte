@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { formatMoney } from '$lib/clientHelpers/formatMoney';
-	import { CalendarDate, CalendarDateRange } from 'calendar-date';
 	import { onMount } from 'svelte';
 
 	let { setBudget, currentBudget} = $props();

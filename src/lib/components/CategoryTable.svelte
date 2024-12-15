@@ -3,44 +3,33 @@
 	import { CalendarDate, CalendarDateRange } from 'calendar-date';
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
 	import { onMount } from 'svelte';
-	import BudgetPopup from './BudgetPopup.svelte';
-	import type { Replicache } from 'replicache';
 	import type { Categories } from '$lib/types/Category';
 	import BudgetTable from './BudgetTable.svelte';
 	import type { Transaction } from '$lib/types/Transaction';
 	import { formatMoney } from '$lib/clientHelpers/formatMoney';
+	import { useTransactions } from '$lib/context/transactions.svelte';
+	import { useCategory } from '$lib/context/categories.svelte';
 
 	const {
-		categories,
-		createNewCategory,
-		updateCategory,
+		formattedCategories,
 		currentMonth,
-        transactions
 	}: {
-		updateCategory: (category: Categories) => void;
-		categories: FormattedCategoryGroup[];
-		createNewCategory: (
-			name: string,
-			groupId: number,
-			currentMonth: CalendarDate,
-			userId: string | undefined
-		) => void;
+		formattedCategories: FormattedCategoryGroup[];
 		currentMonth: CalendarDate;
-        transactions:  Transaction[];
 	} = $props();
-    function getTransactionMap(transactions: Transaction[]) {
-        let catMap: {[key: number]: Transaction[]} = {};
-        for(let i = 0; i < transactions.length; i++) {
-            if(transactions[i].category && catMap[transactions[i].category]) {
-                catMap[transactions[i].category].push(transactions[i]);
-            } else {
-                catMap[transactions[i].category] = [transactions[i]];
-            }
-        }
-        return catMap;
-    }
-	let transactionCategoryMap = $derived(getTransactionMap(transactions));
+	let {transactions} = useTransactions();
+	let {createCategory} = useCategory();
+    
 	let categoryGroups: { showSubGroups: boolean; addNewCategory: boolean }[] = $state([]);
+	function getTotalSpentInMonth(categoryGroup: FormattedCategoryGroup) {
+		if(transactions.spent === undefined) return 0;
+		let total = 0;
+		for(let i = 0; i < categoryGroup.subCategories.length; i++) {
+			if(transactions.spent[categoryGroup.subCategories[i].id] === undefined) continue;
+			total += transactions.spent[categoryGroup.subCategories[i].id][0] || 0
+		}	
+		return total
+	}
 	let newCategoryName = $state('');
 	const toggleCategories = (catIndex: number) => {
 		categoryGroups[catIndex].showSubGroups = !categoryGroups[catIndex].showSubGroups;
@@ -50,22 +39,22 @@
 	};
 	const addNewCategory = (e: SubmitEvent, groupId: number, userId: string | undefined) => {
 		e.preventDefault();
-		createNewCategory(newCategoryName, groupId, currentMonth, userId);
+		if(userId)
+			createCategory(userId, newCategoryName, groupId);
 		newCategoryName = '';
 	};
 	onMount(() => {
-		categoryGroups = categories.map(() => ({
+		categoryGroups = formattedCategories.map(() => ({
 			showSubGroups: true,
 			addNewCategory: false
 		}));
 	});
 	$effect(() => {
-		categoryGroups = categories.map(() => ({
+		categoryGroups = formattedCategories.map(() => ({
 			showSubGroups: true,
 			addNewCategory: false
 		}));
 	});
-    $inspect(categories);
 </script>
 
 <SignedIn let:user>
@@ -80,23 +69,23 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each categories as category, catIndex}
+			{#each formattedCategories as categoryGroup, catIndex}
 				<tr>
 					<td>
 						<button onclick={() => toggleCategories(catIndex)}>Toggle</button>
 						<button onclick={() => toggleNewCategory(catIndex)}>Add</button>
 					</td>
-					<td>{category.name}</td>
-					<td>{formatMoney(category.spent)}</td>
-                    <td>{category.budget}</td>
-                    <td>0</td>
+					<td>{categoryGroup.name}</td>
+					<td>{formatMoney(getTotalSpentInMonth(categoryGroup))}</td>
+                    <td>{categoryGroup.budget}</td>
+                    <td>{formatMoney(categoryGroup.budget + getTotalSpentInMonth(categoryGroup))}</td>
 				</tr>
 				{#if categoryGroups?.length > 0 && categoryGroups[catIndex]?.addNewCategory}
 					<tr>
 						<td colspan="5">
 							<form
 								onsubmit={(e) => {
-									addNewCategory(e, category.id, user?.id);
+									addNewCategory(e, categoryGroup.id, user?.id);
 									categoryGroups[catIndex].addNewCategory = false;
 								}}
 							>
@@ -107,8 +96,8 @@
 					</tr>
 				{/if}
 				{#if categoryGroups.length > 0 && categoryGroups[catIndex].showSubGroups}
-					{#each category.subCategories as subCategory: FormattedCategory}
-						<BudgetTable {subCategory} {currentMonth} {updateCategory} transactions={transactionCategoryMap[subCategory.id]} />
+					{#each categoryGroup.subCategories as subCategory: FormattedCategory}
+						<BudgetTable {subCategory} {currentMonth} spent={transactions.spent[subCategory.id]} />
 					{/each}
 				{/if}
 			{/each}

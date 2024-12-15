@@ -1,79 +1,74 @@
 <script lang="ts">
-	import { CalendarDate, CalendarDateRange } from "calendar-date";
-	import BudgetPopup from "./BudgetPopup.svelte";
-	import type { Transaction } from "$lib/types/Transaction";
-	import type { FormattedCategory } from "$lib/clientHelpers/groupData";
-	import { formatMoney } from "$lib/clientHelpers/formatMoney";
+	import { CalendarDate, CalendarDateRange } from 'calendar-date';
+	import BudgetPopup from './BudgetPopup.svelte';
+	import type { Transaction } from '$lib/types/Transaction';
+	import type { FormattedCategory } from '$lib/clientHelpers/groupData';
+	import { formatMoney } from '$lib/clientHelpers/formatMoney';
+	import { useTransactions } from '$lib/context/transactions.svelte';
+	import { useCategory } from '$lib/context/categories.svelte';
+	import { useBudgetState } from '$lib/context/budgetState.svelte';
 
- const { subCategory, currentMonth, updateCategory, transactions }: {subCategory: FormattedCategory, currentMonth: CalendarDate, updateCategory: any, transactions: Transaction[]}= $props();
- let currentOffset = $derived(() => {
-     let createDate = CalendarDate.fromDateUTC(new Date(subCategory.createdAt))
-     if(createDate.isAfter(currentMonth)) {
-         return -1 * new CalendarDateRange(currentMonth, createDate).getDifferenceInMonths();
-     } else {
-         return new CalendarDateRange(createDate, currentMonth).getDifferenceInMonths();
-     }
- })
- let currentBudget = $derived(() => {
-    return subCategory.selfCategory.budgets[currentOffset()] || 0;
- })
- let totalSpent = $derived(() => {
-        let total = 0;
-        let offsets = Object.keys(subCategory.selfCategory.budgets).map((offset) => parseInt(offset));
-        console.log(subCategory.selfCategory.budgets)
-        for(let i = 0; i < offsets.length; i++) {
-            if(offsets[i] <= currentOffset()) {
-                total += subCategory.selfCategory.budgets[offsets[i]];
-            }
-        }
-        transactions?.forEach((transaction: Transaction) => {
-            let creationDate = CalendarDate.fromDateUTC(new Date(subCategory.createdAt));
-            if(creationDate.isBeforeOrEqual(currentMonth.getLastDayOfMonth())) {
-                total += transaction.amount;
-            }
-        })
-        return total;
- })
- let spentThisMonth = $derived(() => {
-    let total = 0;
-    transactions?.forEach((transactions: Transaction) => {
-        let creationDate = CalendarDate.fromDateUTC(new Date(subCategory.createdAt));
-        if(creationDate.isBeforeOrEqual(currentMonth.getLastDayOfMonth()) && creationDate.isAfterOrEqual(currentMonth.getFirstDayOfMonth())) {
-            total += transactions.amount;
-        }
-    })
-    return total;
- })
-
+	const {
+		subCategory,
+		currentMonth,
+		spent
+	}: {
+		subCategory: FormattedCategory;
+		currentMonth: CalendarDate;
+		spent: { [key: number]: number };
+	} = $props();
+	let { editBudget } = useCategory();
+	let currentOffset = $derived.by(() => {
+		let createDate = CalendarDate.fromDateUTC(new Date(subCategory.createdAt));
+		if (createDate.isAfter(currentMonth)) {
+			return -1 * new CalendarDateRange(currentMonth, createDate).getDifferenceInMonths();
+		} else {
+			return new CalendarDateRange(createDate, currentMonth).getDifferenceInMonths();
+		}
+	});
+	let currentBudget = $derived.by(() => {
+		return subCategory.selfCategory.budgets[currentOffset] || 0;
+	});
+	let totalSpent = $derived.by(() => {
+		let total = 0;
+		let s = spent || {};
+		Object.keys(s).forEach((key) => {
+			let k = parseInt(key);
+			if (k <= currentOffset) {
+				total += s[k];
+			}
+		});
+		return total;
+	});
+	let totalBudget = $derived.by(() => {
+		let total = 0;
+		let b = subCategory.selfCategory.budgets || {};
+		Object.keys(b).forEach((key) => {
+			let k = parseInt(key);
+			if (k <= currentOffset) {
+				total += b[k] || 0;
+			}
+		});
+		return total;
+	});
 </script>
 
 <tr>
-            <td colspan="3">
-                <table>
-                    <tbody>
-                        <tr>
-                                    <td>{subCategory.name}</td>
-                                    <td>{formatMoney(spentThisMonth())}</td>
-                                    <td>
-                                    <BudgetPopup setBudget={(budget: number) => {
-                                        let createDate = CalendarDate.fromDateUTC(new Date(subCategory.createdAt))
-                                        if(createDate.isAfter(currentMonth)) {
-                                            updateCategory({
-                                                ...subCategory.selfCategory,
-                                                budgets: {...subCategory.selfCategory.budgets, [currentOffset()]: budget}
-                                            })
-                                        } else {
-                                            updateCategory({
-                                                ...subCategory.selfCategory,
-                                                budgets: {...subCategory.selfCategory.budgets, [currentOffset()]: budget}
-                                            })
-                                        }}}
-                                        currentBudget={currentBudget()}
-                                        />
-                                    </td>
-                                    <td>{formatMoney(totalSpent())}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
+	<td colspan="2">{subCategory.name}</td>
+	<td
+		>{spent
+			? spent[currentOffset]
+				? formatMoney(spent[currentOffset])
+				: formatMoney(0)
+			: formatMoney(0)}</td
+	>
+	<td>
+		<BudgetPopup
+			setBudget={(budget: number) => {
+				editBudget(subCategory.id, currentOffset, budget);
+			}}
+			{currentBudget}
+		/>
+	</td>
+	<td>{formatMoney(totalBudget + totalSpent)}</td>
+</tr>
