@@ -1,4 +1,4 @@
-export type CategoriesGroups = {
+export type CategoryGroups = {
     id: number;
     userId: string;
     name: string;
@@ -11,10 +11,12 @@ export type CategoriesGroups = {
 
 export type Categories = {
     id: number;
+    groupId: number;
     userId: string;
     name: string;
     deleted: boolean;
     budgets: { [key: number]: number};
+    transactionDate: string;
     createdAt: string;
     updatedAt: string;
 }

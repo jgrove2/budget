@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import SignedIn from 'clerk-sveltekit/client/SignedIn.svelte';
+	import { useTransactions } from '$lib/context/transactions.svelte';
+	import { usePayees } from '$lib/context/payees.svelte';
+	import { useCategory } from '$lib/context/categories.svelte';
 
-	let { categories, createTransaction, payees } = $props();
+	let {createTransaction} = useTransactions();
+	let {categories} = useCategory();
 	let transaction_form = $state({
 		transactionType: 1,
 		category: undefined,
@@ -10,6 +14,7 @@
 		transactionDate: undefined,
 		payee: undefined
 	});
+	let { payees } = usePayees();
 	let dialog: HTMLDialogElement | null;
 	let selected_positive = $derived(transaction_form.transactionType === 1);
 	let selected_negative = $derived(transaction_form.transactionType === -1);
@@ -17,21 +22,23 @@
 		dialog = document.getElementById('create-transaction-dialog') as HTMLDialogElement;
 	});
 
-	let categoriesPlusDefaults = $derived([...categories, {id: -2, name: 'Income'}]);
+	let categoriesPlusDefaults = $derived([...categories.values, {id: -2, name: 'Income'}]);
 
 	function onSubmit(e: SubmitEvent, userId: string | undefined) {
 		e.preventDefault();
-		createTransaction({
-			id: new Date().getTime(),
-			userId: userId || '',
-			amount: transaction_form.amount * transaction_form.transactionType,
-			category: transaction_form.category,
-			payee: transaction_form.payee,
-			transactionDate: transaction_form.transactionDate,
-			deleted: false,
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString()
-		});
+		if(transaction_form.transactionDate && transaction_form.category && transaction_form.payee)
+		createTransaction(
+			userId || "",
+			transaction_form.amount * transaction_form.transactionType,
+			transaction_form.category,
+			transaction_form.payee,
+			transaction_form.transactionDate,
+		);
+		transaction_form.transactionType = 1
+		transaction_form.category = undefined
+		transaction_form.amount = 0
+		transaction_form.transactionDate = undefined
+		transaction_form.payee = undefined
 	}
 </script>
 
@@ -92,7 +99,7 @@
 				bind:value={transaction_form.payee}
 				required
 			>
-				{#each payees as payee}
+				{#each payees.values as payee}
 					<option value={payee.id}>{payee.name}</option>
 				{/each}
 			</select>
